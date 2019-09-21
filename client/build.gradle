@@ -1,0 +1,35 @@
+plugins {
+    id 'maven-publish'
+}
+
+jar {
+    archivesBaseName = rootProject.name + "-" + project.name
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = "${rootProject.name}-${project.name}"
+            from components.java
+        }
+    }
+
+    repositories {
+        maven {
+            url "s3://artifact.bravenewcoin.com/maven/${project.version.endsWith('-SNAPSHOT') ? 'snapshot' : 'release'}"
+            credentials(AwsCredentials) {
+                accessKey "${awsAccessKeyId}"
+                secretKey "${awsSecretAccessKey}"
+                if (awsSessionToken) {
+                    sessionToken "${awsSessionToken}"
+                }
+            }
+        }
+    }
+}
+
+sonarqube {
+    properties {
+        property "sonar.projectKey", "${rootProject.name}:${project.name}"
+    }
+}

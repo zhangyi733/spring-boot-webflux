@@ -1,0 +1,47 @@
+plugins {
+    id "org.springframework.boot" version "2.1.6.RELEASE"
+    id "io.spring.dependency-management" version "1.0.8.RELEASE"
+    id "com.palantir.docker" version "0.22.1"
+    id "com.gorylenko.gradle-git-properties" version "2.0.0"
+}
+
+jar {
+    archivesBaseName = rootProject.name
+}
+
+springBoot {
+    buildInfo()
+}
+
+sonarqube {
+    properties {
+        property "sonar.projectKey", "${rootProject.name}:${project.name}"
+        property "sonar.coverage.exclusions", "**/configuration/*"
+        property "sonar.cpd.exclusions", "**/model/api/*,**/model/entity/*"
+    }
+}
+
+if (!project.hasProperty("REPOSITORY_URI")) {
+    ext.REPOSITORY_URI = jar.archiveBaseName.getOrNull()
+}
+
+if (!project.hasProperty("TAG")) {
+    ext.TAG = jar.archiveVersion.getOrNull()
+}
+
+docker {
+    name "${REPOSITORY_URI}:latest"
+    tag "version", "${REPOSITORY_URI}:${TAG}"
+    files bootJar.archiveFile.getOrNull(), "${project.projectDir.absolutePath}/config/newrelic/newrelic.yml"
+    buildArgs(['JAR_FILE': "${bootJar.archiveFileName.getOrNull()}"])
+}
+
+dependencies {
+    implementation project(':client')
+    implementation group: 'org.springframework.boot', name: 'spring-boot-starter-webflux', version: '2.2.0.M5'
+    implementation group: 'org.springframework', name: 'spring-webflux', version: '5.2.0.RC1'
+    implementation group: 'org.springframework.boot', name: 'spring-boot-starter-actuator'
+    implementation group: 'org.springframework.cloud', name: 'spring-cloud-starter-sleuth', version: '2.1.2.RELEASE'
+    implementation group: 'io.micrometer', name: 'micrometer-registry-new-relic', version: '1.2.0'
+    testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test'
+}

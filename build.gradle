@@ -1,0 +1,97 @@
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id "org.sonarqube" version "2.7.1" apply false
+    id "com.github.spotbugs" version "2.0.0" apply false
+    id "com.bnc.gradle.travis-ci-versioner" version "1.0.6"
+}
+
+ext {
+    awsAccessKeyId = properties.containsKey('AWS_ACCESS_KEY_ID') ? AWS_ACCESS_KEY_ID : System.getenv('AWS_ACCESS_KEY_ID')
+    awsSecretAccessKey = properties.containsKey('AWS_SECRET_ACCESS_KEY') ? AWS_SECRET_ACCESS_KEY : System.getenv('AWS_SECRET_ACCESS_KEY')
+    awsSessionToken = System.getenv('AWS_SESSION_TOKEN')
+}
+
+travisVersioner {
+    major 0
+    minor 0
+}
+
+allprojects {
+    apply plugin: 'java'
+    apply plugin: 'jacoco'
+    apply plugin: 'checkstyle'
+    apply plugin: 'com.github.spotbugs'
+    apply plugin: 'org.sonarqube'
+
+    group = 'com.bnc'
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+    compileJava.options.encoding = "UTF-8"
+    compileTestJava.options.encoding = "UTF-8"
+
+    repositories {
+        mavenCentral()
+        jcenter()
+        maven {
+            // This repository is only used for Brave New Coin artifacts. It is not required to build this project.
+            url "s3://artifact.bravenewcoin.com/maven/release"
+            content {
+                includeGroup "com.bnc"
+            }
+            credentials(AwsCredentials) {
+                accessKey "${awsAccessKeyId}"
+                secretKey "${awsSecretAccessKey}"
+                if (awsSessionToken) {
+                    sessionToken "${awsSessionToken}"
+                }
+            }
+        }
+    }
+
+    spotbugs {
+        toolVersion = '3.1.12'
+        tasks.withType(com.github.spotbugs.SpotBugsTask) {
+            reports {
+                xml.enabled = false
+                html.enabled = true
+            }
+        }
+    }
+
+    jacoco {
+        toolVersion = "0.8.4"
+    }
+
+    checkstyle {
+        toolVersion '8.23'
+        tasks.withType(Checkstyle) {
+            reports {
+                xml.enabled false
+                html.enabled true
+            }
+        }
+    }
+
+    test {
+        useJUnitPlatform()
+        testLogging {
+            events "passed", "skipped", "failed"
+        }
+    }
+
+    dependencies {
+        implementation group: 'com.bnc', name: 'market-data-api', version: '0.0.8'
+
+        testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter', version: '5.5.1'
+        testImplementation group: 'org.assertj', name: 'assertj-core', version: '3.13.1'
+        testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.0.0'
+        testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.0.0'
+    }
+}
+
+sonarqube {
+    properties {
+        property "sonar.projectKey", "${rootProject.name}"
+    }
+}

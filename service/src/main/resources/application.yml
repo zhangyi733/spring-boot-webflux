@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: spring-base
+  main:
+    banner-mode: "off"
+  profiles:
+    active: localhost
+  jackson:
+    default-property-inclusion: non_empty
+
+logging:
+  level:
+    io.micrometer.newrelic: ERROR
+
+resource:
+  path: /sbjb
+
+# Actuator Settings
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    health:
+      show-details: ALWAYS
+  metrics:
+    export:
+      newrelic:
+        enabled: false
+        connect-timeout: 10s
+    tags:
+      application: ${spring.application.name}
+      container: ${HOSTNAME:}${COMPUTERNAME:}
+---
+spring:
+  profiles: production
+management:
+  metrics:
+    export:
+      newrelic:
+        account-id:
+        api-key:
+        enabled: true

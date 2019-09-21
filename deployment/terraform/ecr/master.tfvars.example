@@ -1,0 +1,2 @@
+role_arn        = "<The role to assume to access the terraform remote state>"
+service_name    = "<The service name>"
